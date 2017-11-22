@@ -20,8 +20,7 @@ sap.ui.define(["sap/ui/core/mvc/Controller", 'sap/ui/model/json/JSONModel','jque
             var oModel3 = new JSONModel('/PLANA/API/Plansheets/getUserAccountGroups.xsjs');
             oView.setModel(oModel3, "AccountGroup");
             oModel3.setSizeLimit(500);
-            var ApproversModel = new JSONModel('/PLANA/API/Plansheets/getApprovers.xsjs');
-            oView.setModel(ApproversModel, "Approver");
+           
         },
         companychange: function(e) {
           /*  var o = e.getParameter('selectedItem');
@@ -54,7 +53,7 @@ sap.ui.define(["sap/ui/core/mvc/Controller", 'sap/ui/model/json/JSONModel','jque
 			var MultiCombobox = [
 							//sap.ui.getCore().byId("profitcenters"),
 							sap.ui.getCore().byId("AccountGroup"),
-							sap.ui.getCore().byId("approver")				
+											
 						];
 			var IuputFields = [
 									sap.ui.getCore().byId("FiscalYear")			
@@ -101,7 +100,7 @@ sap.ui.define(["sap/ui/core/mvc/Controller", 'sap/ui/model/json/JSONModel','jque
             var Desc = sap.ui.getCore().byId("Desc").getValue();
             var AccountGroup = sap.ui.getCore().byId("AccountGroup").getSelectedKeys();
             var PYPlanVersion = sap.ui.getCore().byId("PYplanversion").getSelectedKey();
-            var Approver = sap.ui.getCore().byId("approver").getSelectedKeys();
+           
             $.ajax({
                 url: "/PLANA/API/Plansheets/Accounts/submitHeader.xsjs",
                 type: "POST",
@@ -193,7 +192,7 @@ sap.ui.define(["sap/ui/core/mvc/Controller", 'sap/ui/model/json/JSONModel','jque
             var Desc = sap.ui.getCore().byId("Desc").getValue();
             var AccountGroup = sap.ui.getCore().byId("AccountGroup").getSelectedKeys();
             var PYPlanVersion = sap.ui.getCore().byId("PYplanversion").getSelectedKey();
-            var Approver = sap.ui.getCore().byId("approver").getSelectedKeys();
+           
             $.ajax({
                 url: "/PLANA/API/Plansheets/Accounts/editHeader.xsjs",
                 type: "POST",
@@ -207,7 +206,7 @@ sap.ui.define(["sap/ui/core/mvc/Controller", 'sap/ui/model/json/JSONModel','jque
                     "FiscalYearid": FiscalYear,
                     "AccountGroupid": JSON.stringify(AccountGroup),
                     "PYplanversionid": PYPlanVersion,
-                    "Approver": JSON.stringify(Approver),
+                   
                     "Desc": Desc,
                 },
                 success: function() {}
