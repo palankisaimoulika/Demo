@@ -1,0 +1,586 @@
+var New;
+var Edit;
+var excelUpload;
+var Eupload;
+var result;
+var sheetname;
+sap.ui.define(["sap/ui/core/mvc/Controller", 'sap/ui/model/json/JSONModel','jquery.sap.global',"sap/ui/core/util/File","sap/ui/core/util/Export",
+              	"sap/ui/core/util/ExportType","sap/ui/core/util/ExportTypeCSV", ], function(Controller, JSONModel,jQuery,File,Export,ExportType,ExportTypeCSV) {
+    "use strict";
+    jQuery.sap.require("PLANA.UI.WebContent.xlsx");
+    Controller.extend("PLANA.UI.WebContent.controllers.Planning.Accounts.Accounts", {
+        onInit: function() {
+            var oModel2 = new JSONModel('/PLANA/API/Plansheets/Accounts/list.xsjs');
+            var oView = this.getView();
+            oView.setModel(oModel2, "list");//list is a alias name which we give for list .xsjs
+            var oModel = new JSONModel('/PLANA/API/Plansheets/getCompanyCodes.xsjs');
+            oView.setModel(oModel);
+            var oModel1 = new JSONModel('/PLANA/API/Plansheets/getUserPlanversions.xsjs');
+            oView.setModel(oModel1, "PlanVersion");
+            var oModel3 = new JSONModel('/PLANA/API/Plansheets/getUserAccountGroups.xsjs');
+            oView.setModel(oModel3, "AccountGroup");
+            oModel3.setSizeLimit(500);
+            var ApproversModel = new JSONModel('/PLANA/API/Plansheets/getApprovers.xsjs');
+            oView.setModel(ApproversModel, "Approver");
+        },
+        companychange: function(e) {
+          /*  var o = e.getParameter('selectedItem');
+            var bindingOption = o.getBindingContext().getObject();
+            var oView = this.getView();
+            var oId = this.getView().getId();
+            sap.ui.getCore().byId("profitcenters").clearSelection();
+            $.ajax({
+                url: "/PLANA/API/Plansheets/getProfitCenters.xsjs",
+                type: "GET",
+                dataType: "json",
+                async: true,
+                data: {
+                    "id": bindingOption.ID
+                },
+                success: function(data) {
+                    var oModel2 = new JSONModel(data);
+                    oView.setModel(oModel2, "ProfitCenters");
+                }
+            });*/
+        },
+        submit: function(e) {
+        	var view = this.getView();
+			var Combobox = [
+				sap.ui.getCore().byId("companyname"),
+				sap.ui.getCore().byId("planversion"),
+				sap.ui.getCore().byId("PYplanversion")				
+			];
+			
+			var MultiCombobox = [
+							//sap.ui.getCore().byId("profitcenters"),
+							sap.ui.getCore().byId("AccountGroup"),
+							sap.ui.getCore().byId("approver")				
+						];
+			var IuputFields = [
+									sap.ui.getCore().byId("FiscalYear")			
+								];
+			var validationerror=false;
+			// check that inputs are not empty
+			// this does not happen during data binding as this is only triggered by changes
+			jQuery.each(Combobox, function (i, input) {
+				if (!input.getSelectedKey()) {
+					input.setValueState("Error");
+					validationerror=true;
+					
+				}else{
+					input.setValueState("None");
+				}
+			});
+			jQuery.each(MultiCombobox, function (i, input) {
+				if (!input.getSelectedKeys().length) {
+					input.setValueState("Error");
+					validationerror=true;
+					
+				}
+				else{
+					input.setValueState("None");
+				}
+			});
+			jQuery.each(IuputFields, function (i, input) {
+				if (!input.getValue()) {
+					input.setValueState("Error");
+					validationerror=true;
+					
+				}else{
+					input.setValueState("None");
+				}
+			});
+			if(validationerror){
+				return false;
+			}
+            var oId = this.getView().getId();
+            var CompanyName = sap.ui.getCore().byId("companyname").getSelectedKey();
+            var PlanVersion = sap.ui.getCore().byId("planversion").getSelectedKey();
+           // var ProfitCenters = sap.ui.getCore().byId("profitcenters").getSelectedKeys();
+            var FiscalYear = sap.ui.getCore().byId("FiscalYear").getValue();
+            var Desc = sap.ui.getCore().byId("Desc").getValue();
+            var AccountGroup = sap.ui.getCore().byId("AccountGroup").getSelectedKeys();
+            var PYPlanVersion = sap.ui.getCore().byId("PYplanversion").getSelectedKey();
+            var Approver = sap.ui.getCore().byId("approver").getSelectedKeys();
+            $.ajax({
+                url: "/PLANA/API/Plansheets/Accounts/submitHeader.xsjs",
+                type: "POST",
+                dataType: "json",
+                async: false,
+                data: {
+                    "companyid": CompanyName,
+                    "planversionid": PlanVersion,
+                    //"profitcentersid": JSON.stringify(ProfitCenters),
+                    "FiscalYearid": FiscalYear,
+                    "AccountGroupid": JSON.stringify(AccountGroup),
+                    "PYplanversionid": PYPlanVersion,
+                    "Approver": JSON.stringify(Approver),
+                    "Desc": Desc,
+                },
+                success: function() {}
+            });
+            this.New.close();
+            this.New.destroy(true);
+            this.onInit();
+        },
+        submitEdit: function(e) {
+        	//var pc;
+        	//var pc1;
+        	var ag;
+        	var ag1;
+        	var count;
+        	var oModel = this.getView().getModel("EditHeader");
+            var modelData = oModel.getData();
+            
+            var validationerror=false;
+           /* pc=modelData[0].PC;
+            pc1=modelData[0].PC1;
+           var id=modelData[0].ID;
+            for (var i = 0; i < pc1.length; i++) {
+            	count=0;
+            	for (var j = 0; j < pc.length; j++) {
+            	if(pc1[i] == pc[j]){
+            		count++;
+            		break;
+            	}
+            	}
+            //	if(count == 0)
+            	//	{
+            		//MessageBox.error("don't delete existing profit centeres  add only new profit centers");
+           // }
+            		
+            			if(count == 0){
+            				sap.ui.getCore().byId("profitcenters").setValueState("Error");
+								validationerror=true;
+								
+            			}
+							else{
+								sap.ui.getCore().byId("profitcenters").setValueState("None");
+							}
+						
+            	}*/
+            	
+            ag=modelData[0].ACCGRP;
+            ag1=modelData[0].ACCGRP1;
+            for (var i = 0; i < ag1.length; i++) {
+            	count=0;
+            	for (var j = 0; j < ag.length; j++) {
+            	if(ag1[i] == ag[j]){
+            		count++;
+            		break;
+            	}
+            	}
+                      		
+            			if(count == 0){
+            				sap.ui.getCore().byId("AccountGroup").setValueState("Error");
+								validationerror=true;
+								
+            			}
+							else{
+								sap.ui.getCore().byId("AccountGroup").setValueState("None");
+							}
+						
+            	}
+            if(validationerror){
+				return false;
+			}
+            
+            var oId = this.getView().getId();
+            var CompanyName = sap.ui.getCore().byId("companyname").getSelectedKey();
+            var PlanVersion = sap.ui.getCore().byId("planversion").getSelectedKey();
+         //   var ProfitCenters = sap.ui.getCore().byId("profitcenters").getSelectedKeys();
+            var FiscalYear = sap.ui.getCore().byId("FiscalYear").getValue();
+            var Desc = sap.ui.getCore().byId("Desc").getValue();
+            var AccountGroup = sap.ui.getCore().byId("AccountGroup").getSelectedKeys();
+            var PYPlanVersion = sap.ui.getCore().byId("PYplanversion").getSelectedKey();
+            var Approver = sap.ui.getCore().byId("approver").getSelectedKeys();
+            $.ajax({
+                url: "/PLANA/API/Plansheets/Accounts/editHeader.xsjs",
+                type: "POST",
+                dataType: "json",
+                async: false,
+                data: {
+                	"id" :id,
+                    "companyid": CompanyName,
+                    "planversionid": PlanVersion,
+           //         "profitcentersid": JSON.stringify(ProfitCenters),
+                    "FiscalYearid": FiscalYear,
+                    "AccountGroupid": JSON.stringify(AccountGroup),
+                    "PYplanversionid": PYPlanVersion,
+                    "Approver": JSON.stringify(Approver),
+                    "Desc": Desc,
+                },
+                success: function() {}
+            });
+            this.Edit.close();
+            this.Edit.destroy(true);
+            this.onInit();
+        },
+        launchShow: function(evt) {
+            var oBindingContext = evt.getSource().getBindingContext("list");
+            var sPath = oBindingContext.getPath();
+            var sID = oBindingContext.getProperty(sPath).ID;
+            var viewId = this.getView().getId();
+            var subview = new sap.ui.xmlview({
+                viewName: 'PLANA.UI.WebContent.views.Planning.Accounts.AccountdetailsAnnual',
+                viewData: sID
+            });
+            subview.placeAt("__xmlview0--root1", "only");
+        },
+        handleSelectionChange: function(oEvent) {
+            var changedItem = oEvent.getParameter("changedItem");
+            var isSelected = oEvent.getParameter("selected");
+            var state = "Selected";
+            if (!isSelected) {
+                state = "Deselected"
+            }
+        },
+        handleSelectionFinish: function(oEvent) {
+            var selectedItems = oEvent.getParameter("selectedItems");
+            var messageText = "Event 'selectionFinished': [";
+            for (var i = 0; i < selectedItems.length; i++) {
+                messageText += "'" + selectedItems[i].getText() + "'";
+                if (i != selectedItems.length - 1) {
+                    messageText += ",";
+                }
+            }
+            messageText += "]";
+        },
+        handleCancelNew: function(oEvent) {
+            this.New.close();
+            this.New.destroy(true);
+        },
+        launchNew: function(oEvent) {
+            New = this._getDialogNew();
+            New.setShowResetEnabled(this.bShowResetEnabled);
+            this.bIsReseted = false;
+            New.open();
+        },
+        _getDialogNew: function() {
+            this.New = sap.ui.xmlfragment("PLANA.UI.WebContent.views.Planning.Accounts.newHeader", this);
+            this.getView().addDependent(this.New);
+            return this.New;
+        },
+        handleOK2: function(oEvent) {
+            this.oPersonalizationDialog2.close();
+        },
+        handleCancel2: function(oEvent) {
+            this.oPersonalizationDialog2.close();
+        },
+        onPersonalizationDialogPress2: function(oEvent) {
+            var oPersonalizationDialog2 = this._getDialog2();
+            oPersonalizationDialog2.setShowResetEnabled(this.bShowResetEnabled);
+            this.bIsReseted = false;
+            oPersonalizationDialog2.open();
+        },
+        _getDialog2: function() {
+            if (this.oPersonalizationDialog2) {
+                return this.oPersonalizationDialog2;
+            }
+            this.oPersonalizationDialog2 = sap.ui.xmlfragment("PLANA.UI.WebContent.views.Planning.Accounts.PersonalizationDialog2", this);
+            this.getView().addDependent(this.oPersonalizationDialog2);
+            return this.oPersonalizationDialog2;
+        },
+        download: function(oEvent) {
+        },
+        launchEdit: function(oEvent) {
+        /*	var oBinding = oEvent.getSource().getBindingContext("list");
+            var sPath = oBinding.getPath();
+            var id = oBinding.getProperty(sPath).ID;
+            var companyid = oBinding.getProperty(sPath).COMPCODEID;
+            var oView = this.getView();
+            $.ajax({
+                url: "/PLANA/API/Plansheets/getProfitCenters.xsjs",
+                type: "GET",
+                dataType: "json",
+                async: false,
+                data: {
+                    "id": companyid
+                },
+                success: function(data) {
+                    var oModel2 = new JSONModel(data);
+                    oView.setModel(oModel2, "ProfitCenters1");
+                }
+            });*/
+            $.ajax({
+                url: "/PLANA/API/Plansheets/Accounts/getHeader.xsjs",
+                type: "POST",
+                dataType: "json",
+                async: false,
+                data: {
+                    "id": id
+                },
+                success: function(data) {
+                	var oModel2 = new JSONModel(data);
+                    oView.setModel(oModel2, "EditHeader");
+                }
+            });
+            var Edit = this._getDialogEdit();
+            Edit.setShowResetEnabled(this.bShowResetEnabled);
+            this.bIsReseted = false;
+            Edit.open();
+        },
+        _getDialogEdit: function() {
+            if (this.Edit) {
+                return this.Edit;
+            }
+            this.Edit = sap.ui.xmlfragment("PLANA.UI.WebContent.views.Planning.Accounts.EditHeader", this);
+            this.getView().addDependent(this.Edit);
+            return this.Edit;
+        },
+        handleCancelEdit: function(oEvent) {
+            this.Edit.close();
+        },
+        handleOkEdit: function(oEvent) {
+            this.Edit.close();
+        },
+        reload: function() {
+            window.location.reload();
+        },
+        launchExcelUpload:function(oEvent) {
+            Eupload = this._getDialogUpload();
+            Eupload.setShowResetEnabled(this.bShowResetEnabled);
+            this.bIsReseted = false;
+            Eupload.open();
+        },
+        launchExcelFormat: sap.m.Table.prototype.exportData || function(oEvent) {
+       	 var oView = this.getView();
+       	var oBinding = oEvent.getSource().getBindingContext("list");
+           var sPath = oBinding.getPath();
+           var id = oBinding.getProperty(sPath).ID;
+       	
+       	 $.ajax({	    	  
+
+		    	  url : "/PLANA/API/Plansheets/Accounts/getLineItems.xsjs",
+		    	  type : "POST",	    	  
+		    	  dataType : "json",
+		    	  //async set as true before getting the data from DB remaining activities run as parrallelly
+		    	  //In this case after getting values only remaining process as done so set async as false
+		    	  async : false,
+		    	  data : {"id":id}, 
+		    	  success: function (data) {	    	
+		    		
+		    		var lineitemModel = new JSONModel(data); 
+		    		  
+		    	  
+				oView.setModel(lineitemModel,"lineitems");
+				
+		    	   }
+		    	  
+		      
+		    	  });
+       	
+       	var oExport = new Export({
+
+				// Type that will be used to generate the content. Own ExportType's can be created to support other formats
+				exportType : new ExportTypeCSV({
+					separatorChar : ","
+						
+				}),
+
+				// Pass in the model created above
+				//models : this.getView().getModel("lineitems"),
+				models : this.getView().getModel("lineitems"),
+				// binding information for the rows aggregation
+				rows : {
+					path : "/"
+				},			
+		
+				// column definitions with column name and binding info for the content
+				 
+				columns : [{
+					name : "ID",
+					template : {
+						content : "{LINEITEMID}"
+					}
+				},{
+					name : "Year",
+					template : {
+						content : "{YEAR}"
+					}
+				}, {
+					name : "CompanyCode",
+					template : {
+						content : "{COMPCODE}"
+					}
+				},
+				 {
+					name : "CompanyName",
+					template : {
+						content : "{COMPNAME}"
+					}
+				},{
+					name : "PlanVersionID",
+					template : {
+						content : "{VERSIONID}"
+					}
+				},{
+					name : "PlanVersionName",
+					template : {
+						content : "{VERSIONNAME}"
+					}
+				},{
+					name : "AccountGroupID",
+					template : {
+						content : "{ACCOUNTGROUPID}"
+					}
+				},{
+					name : "AccountGroupName",
+					template : {
+						content : "{ACCOUNTGROUPNAME}"
+					}
+				},
+				{
+					name : "AccountID",
+					template : {
+						content : "{ACCOUNTID}"
+					}
+				},{
+					name : "AccountName",
+					template : {
+						content : "{ACCOUNTNAME}"
+					}
+				},
+				{
+					name : "Period1",
+					template : {
+						content : "{CYPLANP1}"
+					}
+				},{
+					name : "Period2",
+					template : {
+						content : "{CYPLANP2}"
+					}
+				},{
+					name : "Period3",
+					template : {
+						content : "{CYPLANP3}"
+					}
+				},{
+					name : "Period4",
+					template : {
+						content : "{CYPLANP4}"
+					}
+				},{
+					name : "Period5",
+					template : {
+						content : "{CYPLANP5}"
+					}
+				},{
+					name : "Period6",
+					template : {
+						content : "{CYPLANP6}"
+					}
+				},{
+					name : "Period7",
+					template : {
+						content : "{CYPLANP7}"
+					}
+				},{
+					name : "Period8",
+					template : {
+						content : "{CYPLANP8}"
+					}
+				},{
+					name : "Period9",
+					template : {
+						content : "{CYPLANP9}"
+					}
+				},{
+					name : "Period10",
+					template : {
+						content : "{CYPLANP10}"
+					}
+				},{
+					name : "Period11",
+					template : {
+						content : "{CYPLANP11}"
+					}
+				},{
+					name : "Period12",
+					template : {
+						content : "{CYPLANP12}"
+					}
+				}]
+			});
+
+						// download exported file
+oExport.saveFile('Accounts').always(function() {
+//	oExport.saveFile().always(function() {
+
+this.destroy();
+
+});
+	
+		}	,
+        _getDialogUpload: function() {
+            this.Eupload = sap.ui.xmlfragment("PLANA.UI.WebContent.views.Planning.Accounts.ExcelUpload", this);
+            this.getView().addDependent(this.Eupload);
+            return this.Eupload;
+        },
+        
+       
+        uploadFileCSV1:function(e){
+        	//console.log(e.getParameter("files"));
+        	//console.log(e.getSource().getParameters("files"));
+        	this._import(e.getParameter("files") && e.getParameter("files")[0]);
+
+        },
+        _import : function(file) {
+          if(file && window.FileReader){
+            var reader = new FileReader();
+            result = {}; var data;
+            reader.onload = function(e) {
+              data = e.target.result;
+            var wb = XLSX.read(data, {type: 'binary'});
+            wb.SheetNames.forEach(function(sheetName) {
+              var roa = XLSX.utils.sheet_to_row_object_array(wb.Sheets[sheetName]);
+              if(roa.length > 0){
+                result[sheetName] = roa;
+              }
+              sheetname=sheetName;
+            });
+           
+            console.log(result);
+           return result;
+            
+            }
+
+         reader.readAsBinaryString(file);
+          
+        }
+         
+        },
+
+        handleUploadPress: function(e) {
+        	
+        	//var view = this.getView();
+        	$.ajax({	    	  
+      	  	  
+      	  	  url : "/PLANA/API/Plansheets/Accounts/Excelupload.xsjs",
+      	  	  type : "POST",	    	  
+      	  	  dataType : "json",
+      	  	  async : false, 
+      	  	  data : { "data":JSON.stringify(result["sheetname"])  
+      	  	  },  
+      	  		    	  success: function (data) {	    	
+      	  		    		  
+      	  			    		// console.log(data);
+      	  		    	  } 
+
+    	      		
+      	  	    	  });
+        	
+        	
+        	this.Eupload.close();
+        	            this.Eupload.destroy(true);
+        	            this.onInit();
+
+        },
+        handleCancelUpload: function(oEvent) {
+            this.Eupload.close();
+            this.Eupload.destroy(true);
+        }
+    });
+    return Controller;
+});
